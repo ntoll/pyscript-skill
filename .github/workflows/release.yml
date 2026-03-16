@@ -1,0 +1,29 @@
+name: Package skill on release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Required to upload the packaged file as a release asset.
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Package skill
+        # Produces pyscript.skill as a zip of the skill directory.
+        # The .skill extension is conventional — it is a standard zip file.
+        run: zip -r pyscript.skill pyscript-skill/
+
+      - name: Upload skill to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" pyscript.skill \
+            --clobber
