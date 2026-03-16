@@ -9,21 +9,22 @@ docs are the best place to start: https://docs.pyscript.net/
 
 API docs for the PyScript namespace can be found here: https://docs.pyscript.net/latest/api/init/
 
-API docs for individual sub-modules can be found here:
+API docs for individual sub-modules in the `pyscript` namespace can be found
+here:
 
-* context (execution context management for PyScript) - https://docs.pyscript.net/latest/api/context/
-* display (display Pythonic content in the browser) - https://docs.pyscript.net/latest/api/display/
-* events (Pythonic event handling for PyScript) - https://docs.pyscript.net/latest/api/events/
-* fetch (a Python friendly wrapper around the browser's built-in fetch API) - https://docs.pyscript.net/latest/api/fetch/
-* ffi (functions related to the foreign function interface for JavaScript interoperability) - https://docs.pyscript.net/latest/api/ffi/
-* flatted (a utility to provide JSON-ish structures that contain circular references) - https://docs.pyscript.net/latest/api/flatted/
-* fs (Chrome only access to the user's local filesystem) - https://docs.pyscript.net/latest/api/fs/
-* media (functions for interacting with the browser's built-in media devices and streams [camera, mic, etc...]) - https://docs.pyscript.net/latest/api/media/
-* storage (Pythonic dict-like wrapper around the browser's IndexDB for persistent local storage) - https://docs.pyscript.net/latest/api/storage/
-* util (simple general purpose and useful utility functions that behave the same way no matter the runtime: e.g. `is_awaitable`) - https://docs.pyscript.net/latest/api/util/
-* web (a Pythonic API and interface for DOM access and manipulation) - https://docs.pyscript.net/latest/api/web/
-* websocket (a Pythonic wrapper around the browser's WebSocket API) - https://docs.pyscript.net/latest/api/websocket/
-* workers (Pythonic interactions with web workers for long running or blocking background tasks) - https://docs.pyscript.net/latest/api/workers/
+* `context` (execution context management for PyScript) - https://docs.pyscript.net/latest/api/context/
+* `display` (display Pythonic content in the browser) - https://docs.pyscript.net/latest/api/display/
+* `events` (Pythonic event handling for PyScript) - https://docs.pyscript.net/latest/api/events/
+* `fetch` (a Python friendly wrapper around the browser's built-in fetch API) - https://docs.pyscript.net/latest/api/fetch/
+* `ffi` (functions related to the foreign function interface for JavaScript interoperability) - https://docs.pyscript.net/latest/api/ffi/
+* `flatted` (a utility to provide JSON-ish structures that contain circular references) - https://docs.pyscript.net/latest/api/flatted/
+* `fs` (Chrome only access to the user's local filesystem) - https://docs.pyscript.net/latest/api/fs/
+* `media` (functions for interacting with the browser's built-in media devices and streams [camera, mic, etc...]) - https://docs.pyscript.net/latest/api/media/
+* `storage` (Pythonic dict-like wrapper around the browser's IndexDB for persistent local storage) - https://docs.pyscript.net/latest/api/storage/
+* `util` (simple general purpose and useful utility functions that behave the same way no matter the runtime: e.g. `is_awaitable`) - https://docs.pyscript.net/latest/api/util/
+* `web` (a Pythonic API and interface for DOM access and manipulation) - https://docs.pyscript.net/latest/api/web/
+* `websocket` (a Pythonic wrapper around the browser's WebSocket API) - https://docs.pyscript.net/latest/api/websocket/
+* `workers` (Pythonic interactions with web workers for long running or blocking background tasks) - https://docs.pyscript.net/latest/api/workers/
 
 The PyScript user guide is also a good source of information for the following
 topics:
