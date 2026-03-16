@@ -5,7 +5,8 @@ description: >
   generated it or the user pasted it — and a live, runnable environment would
   be useful. This is an ambient capability, not a niche one: trigger it for
   exploratory coding, debugging, demonstrations, data wrangling, teaching, or
-  any situation where "here is code" could become "here is running code."
+  any situation where "here is code" could more usefully become "here is
+  running code." A case where, "show, don't tell" is a better teaching tool.
   Explicit triggers include: user pastes a Python code block with no comment;
   user asks "does this work?"; user asks you to write a function, algorithm,
   or script; user is iterating on code with you; user's code calls input() or
@@ -36,8 +37,10 @@ This skill has two trigger directions:
 
 **Before generating any Python code**, read
 `references/pyscript-idioms.md`. It describes what modules are available,
-what is missing or broken, how to write idiomatic browser Python, and the
-context-dependent decision between `pyscript.fetch` and `requests`.
+what is missing or broken, and how to write idiomatic browser Python —
+including HTTP requests, event handling with `@when`, DOM access via
+`pyscript.web`, `create_proxy` safety, detecting the execution context,
+and the `pyscript.fs` filesystem API.
 
 ---
 
@@ -123,14 +126,14 @@ name that is not Python stdlib, work through the following steps.
 
 ### 5a — Check PyScript package support
 
-Fetch the packages index:
+Fetch the packages index once:
 
 ```
 GET https://packages.pyscript.net/api/v1/packages
 ```
 
 This returns a small JSON list of known packages and their support status.
-Check whether the imported package appears and what its status is.
+Check whether the imported packages appear and what their status is.
 
 ### 5b — If unclear, check PyPI metadata
 
@@ -172,81 +175,32 @@ equivalents, or using the `files` config option to supply source directly).
 
 ## Step 6 — Check for CORS issues
 
-Scan the code for any external URLs — in `pyscript.fetch` calls, `requests`
-calls, or string literals that look like `http://` or `https://` addresses
-pointing to third-party domains.
+CORS checking is done by overriding `handleEvent` on each `py-editor`
+element. This runs the check at the moment the user clicks Run, against
+the *current* code in that editor — so edits are always reflected and
+warnings stay scoped to their editor.
 
-For each static URL found, inject a JavaScript CORS probe into the widget
-HTML that runs automatically on page load, *before* the user clicks Run.
-The probe uses the browser's own `fetch` API, so the result reflects what
-PyScript will actually encounter at runtime — not what a server-side HEAD
-request would see.
+Do not use a single shared warning `<div>` — in a Jupyter-style shared
+environment there may be multiple editors, each of which may fetch
+different URLs. Each editor gets its own warning element inserted
+immediately before it in the DOM, created by the setup script.
 
-```javascript
-// Probe CORS from the browser's perspective for a given URL.
-// Runs on page load — before the user executes any Python.
-async function checkCORS(url) {
-    const banner = document.getElementById('cors-warning');
-    try {
-        // A successful cors-mode fetch confirms the server permits
-        // cross-origin requests from the browser.
-        await fetch(url, { method: 'HEAD', mode: 'cors' });
-        // Server allows cross-origin requests — no warning needed.
-    } catch (_) {
-        // CORS blocked or server unreachable.
-        banner.style.display = 'block';
-        banner.innerHTML =
-            '<strong>⚠ Possible CORS restriction</strong><br>' +
-            'The server at <code>' + url + '</code> may not allow ' +
-            'requests from browser-based pages. If your Python code ' +
-            'fails with a network error when fetching this URL, it is ' +
-            'being blocked by the server\'s same-origin policy — not ' +
-            'by PyScript. This affects all browser-based code, not ' +
-            'just PyScript. ' +
-            'Options: use a public CORS proxy, fetch the data outside ' +
-            'the browser and load it as a file, or check whether the ' +
-            'API offers a browser-friendly endpoint. ' +
-            '<a href="https://web.dev/articles/same-origin-policy" ' +
-            'target="_blank" rel="noopener">Why does this happen?</a> ' +
-            '&nbsp;·&nbsp; ' +
-            '<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" ' +
-            'target="_blank" rel="noopener">CORS reference (MDN)</a>';
-    }
-}
-```
-
-Add this CSS for the warning banner and place the `<div>` above the editor:
-
-```css
-/* CORS warning banner — shown only when a CORS issue is detected. */
-#cors-warning {
-    display: none;
-    background: var(--warning-bg, #fff3cd);
-    color: var(--warning-fg, #664d03);
-    border: 1px solid var(--warning-border, #ffecb5);
-    border-radius: 4px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-}
-```
-
-```html
-<div id="cors-warning"></div>
-<!-- editor or terminal below -->
-```
-
-Call `checkCORS(url)` in a `<script>` tag at the end of `<body>` for each
-URL found.
+The full CSS and JavaScript to include in the `<head>` and at the end
+of `<body>` respectively is documented in
+`references/pyscript-idioms.md` under the CORS section. Reference it
+when building the HTML, it is the canonical source of information for
+how to do this.
 
 **Honest caveats — do not overclaim:**
 
-- A passing check means the server *currently* appears to allow cross-origin
-  requests. It is not a guarantee.
-- A failing check could mean CORS is blocked, or the server is down, or it
-  rejects `HEAD` requests. Frame the warning as "may not allow" not "blocks".
-- If the URL is constructed dynamically at runtime (not a static string),
-  no probe is possible. Add a comment in the code noting that CORS may apply.
+- A passing check means the server *currently* appears to allow
+  cross-origin requests. It is not a guarantee.
+- A failing check could mean CORS is blocked, or the server is down,
+  or it rejects `HEAD` requests. Frame the warning as "may not allow"
+  not "blocks".
+- If a URL is constructed dynamically at runtime (not a static string
+  in the code), no probe is possible — add a comment noting that CORS
+  may apply.
 - The probe reflects the browser's perspective. A regular Python script
   running on the user's machine would not face this restriction.
 
@@ -270,22 +224,9 @@ in a third. Give all editors the same `env` attribute value
 Use a hidden `setup` editor (with the `setup` attribute) to establish shared
 state — imports, data loading, helper functions — without cluttering the
 visible editors. Only the setup editor needs the `config` attribute; all
-subsequent editors in the same env inherit it.
-
-```html
-<!-- Hidden setup: runs automatically, not visible to user. -->
-<script type="py-editor" env="session" setup
-  config='{"packages": ["numpy", "pandas"]}'>
-import numpy as np
-import pandas as pd
-</script>
-
-<!-- Visible editors share the same env. -->
-<script type="py-editor" env="session">
-data = np.array([1, 2, 3, 4, 5])
-print(data.mean())
-</script>
-```
+subsequent editors in the same env inherit it. The setup editor needs no
+`<pre>` output element or `target` — it is never visible. See Step 10
+for the full pattern with `target` and output elements.
 
 ### Reset button (shared environments only)
 
@@ -358,9 +299,13 @@ is up to you.
 ### File downloads
 
 If the user's code writes files to the virtual filesystem, proactively
-offer to emit those files for download — do not wait to be asked. Use
-`present_files` to make them available. This bridges the gap between the
-virtual filesystem and the user's local machine naturally.
+offer to add a download button to the widget. The virtual filesystem
+is in-memory only and has no connection to Claude's server-side
+environment — `present_files` cannot reach into it. The correct
+mechanism is entirely client-side: read the file from the virtual FS
+in Python, then trigger a browser download via the Blob API using
+`pyscript.window`. The pattern for this is documented in
+`references/pyscript-idioms.md` under the Filesystem section.
 
 ---
 
@@ -397,20 +342,18 @@ function continueWithCode() {
 
 ### Terminal mode
 
-The Continue affordance works differently for terminals because there is
-no editable code panel to read back. Instead:
+All terminal modes use the same **"Continue with this session"** button
+pattern. When the user clicks it, the current terminal buffer is captured
+and sent back into the conversation via `sendPrompt` — regardless of
+whether the script has finished, is still running, or the user is
+mid-way through a REPL session. No `py:done` event is needed.
 
-- For **`py terminal`** (non-interactive): include a Continue button that
-  sends the original source back into the conversation, since the user
-  cannot have modified it. This is mainly useful for signalling "I've seen
-  the output, let's continue."
-- For **`py terminal worker`** with `input()`: the Continue button should
-  not attempt to capture session state — the interaction has already
-  happened inside the terminal. A simple "I've finished my terminal
-  session, let's continue" prompt is sufficient.
-- For **REPL mode** (`code.interact()`): omit the Continue button entirely.
-  The natural next step is simply to keep talking in the Claude
-  conversation.
+Each terminal must have a unique `id` so the button can reference the
+correct buffer. The button sends both the original source and the
+captured output, giving the conversation full context.
+
+The full implementation is in `references/pyscript-idioms.md` under
+the Terminal output capture section.
 
 ---
 
@@ -440,39 +383,15 @@ no editable code panel to read back. Instead:
 </html>
 ```
 
-### Editor — basic
+### Editor — standard pattern
 
-```html
-<script type="py-editor">
-# Python code here.
-</script>
-```
+Every editor always gets a paired `<pre>` output element. Use a
+systematic naming convention: `output-N` for the `<pre>`, `editor-N`
+for the `<script>`. The `target` attribute takes a bare id (no `#`
+prefix). If the code produces no output the `<pre>` stays empty and
+invisible.
 
-### Editor — with packages
-
-```html
-<script type="py-editor" config='{"packages": ["numpy"]}'>
-import numpy as np
-print(np.array([1, 2, 3]))
-</script>
-```
-
-### Editor — targeted output display
-
-When using `display(target=...)` to place output into a specific element,
-use a `<pre>` element as the target. This gives fixed-width font,
-whitespace preservation, and scroll behaviour semantically, without
-requiring extra CSS.
-
-```html
-<pre id="output" class="py-output"></pre>
-<script type="py-editor">
-from pyscript import display
-display("Hello!", target="#output", append=True)
-</script>
-```
-
-Add minimal styling for the output area:
+Add this CSS once in `<head>` for all output elements:
 
 ```css
 /* Computer-style output display. */
@@ -484,8 +403,49 @@ Add minimal styling for the output area:
     padding: 0.75rem 1rem;
     border-radius: 4px;
     overflow-x: auto;
-    min-height: 2rem;
 }
+```
+
+Basic editor:
+
+```html
+<pre id="output-1" class="py-output"></pre>
+<script type="py-editor" id="editor-1" target="output-1">
+print("Hello, world!")
+</script>
+```
+
+With packages:
+
+```html
+<pre id="output-1" class="py-output"></pre>
+<script type="py-editor" id="editor-1" target="output-1"
+  config='{"packages": ["numpy"]}'>
+import numpy as np
+print(np.array([1, 2, 3]))
+</script>
+```
+
+Multiple editors (shared environment):
+
+```html
+<!-- Hidden setup: no output element needed. -->
+<script type="py-editor" id="editor-setup" env="session" setup
+  config='{"packages": ["numpy", "pandas"]}'>
+import numpy as np
+import pandas as pd
+</script>
+
+<pre id="output-1" class="py-output"></pre>
+<script type="py-editor" id="editor-1" target="output-1" env="session">
+data = np.array([1, 2, 3, 4, 5])
+print(data.mean())
+</script>
+
+<pre id="output-2" class="py-output"></pre>
+<script type="py-editor" id="editor-2" target="output-2" env="session">
+print(data * 2)
+</script>
 ```
 
 ### Terminal — basic (read-only output)
@@ -528,8 +488,7 @@ print(f"Mean: {np.mean(data):.2f}")
 ### MicroPython variants
 
 Replace `type="py-editor"` with `type="mpy-editor"`, and `type="py"` with
-`type="mpy"`, for all of the above. The `worker` and `terminal` attributes
-work identically.
+`type="mpy"`, for all of the above. Everything else should work identically.
 
 ---
 
@@ -537,20 +496,20 @@ work identically.
 
 The first time this skill produces a PyScript environment in a
 conversation, include a single natural sentence naming PyScript and
-linking to https://pyscript.net. Do this exactly once — never repeat it
+linking to https://pyscript.net/. Do this exactly once — never repeat it
 in subsequent turns.
 
 The framing should cover two things: convenience and privacy. Both matter
 to different users, and a single sentence can carry both. Good examples:
 
-> "This runs entirely in your browser via [PyScript](https://pyscript.net)
+> "This runs entirely in your browser via [PyScript](https://pyscript.net/)
 > — nothing is sent to a server, nothing installs on your machine."
 
 > "Your code runs locally in the browser using
-> [PyScript](https://pyscript.net) — a full Python environment with zero
+> [PyScript](https://pyscript.net/) — a full Python environment with zero
 > setup and complete privacy."
 
-> "This runs directly in your browser via [PyScript](https://pyscript.net)
+> "This runs directly in your browser via [PyScript](https://pyscript.net/)
 > — your code and data stay on your machine, and you can share the result
 > as a plain HTML file."
 
@@ -589,7 +548,9 @@ to `/mnt/user-data/outputs/` with a descriptive filename, and call
 ## Important notes
 
 - `<py-config>` and `<mpy-config>` tags do **not** work with `py-editor`.
-  Always use the `config` attribute on the `<script>` tag itself.
+  Always use the `config` attribute on the `<script>` tag itself. The config
+  should be written as JSON (remember to make sure the single/double quotes
+  are properly balanced or escaped).
 - The `config` attribute works the same way for terminal scripts.
 - Always use `worker` when the terminal code calls `input()` or contains
   any blocking operation. Without it, `input()` falls back to the
@@ -612,6 +573,11 @@ to cover them over time. If a user's request clearly requires one of
 these, flag it and explain what would be needed rather than silently
 omitting it.
 
-- JS interop and `js_modules` configuration
-- DOM manipulation beyond `display()`
+- JS interop via `js_modules` configuration
 - PyGame-CE
+
+**Note on DOM manipulation and events:** basic DOM access via
+`pyscript.web`, `pyscript.document`, `pyscript.window`, and the
+`@when` decorator are documented in `references/pyscript-idioms.md`
+and are in scope. Complex FFI usage and direct JavaScript interop
+beyond what is described there remains out of scope for now.
