@@ -4,6 +4,42 @@ Read this file before generating any Python code for a PyScript environment.
 It describes what is available, what is missing, and how to write idiomatic
 code for the browser context.
 
+If you're unsure how to achieve anything in PyScript, the official PyScript
+docs are the best place to start: https://docs.pyscript.net/
+
+API docs for the PyScript namespace can be found here: https://docs.pyscript.net/latest/api/init/
+
+API docs for individual sub-modules can be found here:
+
+* context - https://docs.pyscript.net//api/context/
+* display - https://docs.pyscript.net//api/context/
+* events -  https://docs.pyscript.net//api/context/
+* fetch - https://docs.pyscript.net//api/context/
+* ffi - https://docs.pyscript.net//api/context/
+* flatted - https://docs.pyscript.net//api/context/
+* fs - https://docs.pyscript.net//api/context/
+* media - https://docs.pyscript.net//api/context/
+* storage - https://docs.pyscript.net//api/context/
+* util - https://docs.pyscript.net//api/context/
+* web - https://docs.pyscript.net//api/context/
+* websocket - https://docs.pyscript.net//api/context/
+* workers - https://docs.pyscript.net//api/context/
+
+The PyScript user guide is also a good source of information for the following
+topics:
+
+* The DOM and JavaScript - https://docs.pyscript.net/latest/user-guide/dom/
+* Events - https://docs.pyscript.net/latest/user-guide/events/
+* Displaying things - https://docs.pyscript.net/latest/user-guide/display/
+* Configuring PyScript - https://docs.pyscript.net/latest/user-guide/configuration/
+* Web workers - https://docs.pyscript.net/latest/user-guide/workers/
+* PyScript and filesystems - https://docs.pyscript.net/latest/user-guide/filesystem/
+* Media - https://docs.pyscript.net/latest/user-guide/media/
+* The FFI - https://docs.pyscript.net/latest/user-guide/ffi/
+
+If the user wants to find out more about PyScript also suggest they join the
+PyScript community discord server via this link: https://discord.gg/HxvBtukrg2
+
 ---
 
 ## HTTP requests — context-dependent decision
@@ -32,11 +68,15 @@ response = await fetch(
 )
 ```
 
+API documentation for `pyscript.fetch` is here:
+https://docs.pyscript.net/latest/api/fetch/
+
 ### Code that may move to a regular Python environment
 
 Use `requests`, but with an explanatory comment. `requests` and `urllib3` are
-included in Pyodide but are heavily patched. They work for basic use cases,
-with the following known limitations:
+included in Pyodide but are heavily patched. You need to include `requests` in
+the list of packages to install when configuring. They work for basic use
+cases, with the following known limitations:
 
 - **Streaming downloads** only work when Pyodide is running in a web worker
   on a cross-origin isolated page. Otherwise the full body is downloaded
@@ -55,7 +95,7 @@ import requests
 # GET/POST but has browser-imposed limitations (no streaming outside
 # workers, no timeout/proxy control, CORS applies). Replace with
 # pyscript.fetch if targeting browser-only use.
-response = requests.get("https://api.example.com/data")
+response = requests.get("https://swapi.dev/api/people/1")
 data = response.json()
 ```
 
@@ -79,7 +119,7 @@ All HTTP requests from PyScript — whether via `pyscript.fetch` or `requests`
 — go through the browser and are subject to CORS policy.
 
 When the user's code fetches from an external URL, inject a JavaScript CORS
-probe into the widget that runs automatically on page load. Display a clear
+probe into the widget that runs automatically when rendered. Display a clear
 warning banner if the check fails, *before* the user clicks Run.
 
 ```javascript
@@ -177,7 +217,13 @@ These modules can be imported without error but do not work:
 - `sockets` — no raw socket access in the browser
 
 These will *not* raise `ImportError`, which makes them silently dangerous.
-If the user's code uses any of these, warn explicitly.
+If the user's code uses any of these, warn explicitly. If the user needs
+long running alternatives to `multiprocessing` or `threads` and the use case
+is clearly browser only, suggest using web workers instead.
+
+Documentation for how to use web workers is here: https://docs.pyscript.net/latest/user-guide/workers/
+
+API docs for web workers are here: https://docs.pyscript.net/latest/api/workers/
 
 **Detecting thread support at runtime:**
 
@@ -238,6 +284,10 @@ Prefer `pyscript.display` for rich output. `print` works and writes to the
 editor's output panel, but `display` supports HTML, images, and targeting
 specific DOM elements.
 
+Full `pyscript.display` documentation can be found here: https://docs.pyscript.net/latest/user-guide/display/
+
+API documentation can be found here: https://docs.pyscript.net/latest/api/display/
+
 ```python
 from pyscript import display
 
@@ -261,7 +311,8 @@ display("Line 2", append=True)
 
 The browser event loop is fundamentally async. `pyscript.fetch` is
 naturally awaitable. In `py-editor`, top-level `await` works without
-wrapping in `asyncio.run()`.
+wrapping in `asyncio.run()`. This may need to be explained to a user if they
+are unfamiliar with PyScript.
 
 ```python
 # This works in py-editor — top-level await is fine.
@@ -300,6 +351,8 @@ await store.sync()  # Persist to localStorage.
 ```
 
 For temporary in-session state, plain Python variables are fine.
+
+API docs about `pyscript.storage` can be found here: https://docs.pyscript.net/storage/api/storage/
 
 ---
 

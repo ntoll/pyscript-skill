@@ -8,8 +8,6 @@ This is an **ambient** capability - it activates whenever Python code appears
 in a conversation, whether Claude generated it or you pasted it in. You don't
 need to ask for it explicitly.
 
----
-
 ## What it does
 
 - Produces a live, editable Python environment directly in the Claude
@@ -26,14 +24,10 @@ need to ask for it explicitly.
   is detected.
 - Runs entirely in your browser - your code and data never leave your machine.
 
----
-
 ## Installation
 
 Download the latest `pyscript.skill` file from
 [Releases](../../releases/latest) and install it via Claude's skill settings.
-
----
 
 ## Developing
 
@@ -56,8 +50,6 @@ To package a `.skill` file locally for testing:
 zip -r pyscript.skill pyscript-skill/
 ```
 
----
-
 ## Contributing
 
 Contributions welcome - particularly:
@@ -70,7 +62,9 @@ Contributions welcome - particularly:
 Please open an issue before starting significant work so we can discuss
 the approach first.
 
----
+We expect everyone to behave in the spirit of our statement on
+[care of community](CARE_OF_COMMUNITY.md). If you don't, after a clear warning,
+you'll be banned.
 
 ## Licence
 
