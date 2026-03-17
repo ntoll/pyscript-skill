@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Package skill
         # Produces pyscript.skill as a zip of the skill directory.
