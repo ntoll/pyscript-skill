@@ -17,9 +17,15 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Package skill
-        # Produces pyscript.skill as a zip of the skill directory.
+        # Produces pyscript.skill as a zip of the skill files.
+        # Excludes repo metadata that is not part of the skill itself.
         # The .skill extension is conventional — it is a standard zip file.
-        run: zip -r pyscript.skill pyscript-skill/
+        run: |
+          zip -r pyscript.skill . \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude ".gitignore" \
+            --exclude "*.skill"
 
       - name: Upload skill to release
         env:
